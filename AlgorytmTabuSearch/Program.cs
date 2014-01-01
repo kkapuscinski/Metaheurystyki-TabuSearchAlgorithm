@@ -14,12 +14,13 @@ namespace AlgorytmTabuSearch
             //zrobić wczytywanie mapy i wyliczanie odległości
 
             // domyślne parametry
-            string mapPath = "bays29.txt";
+            //optimal berlin52 7544.365901904087
+            string mapPath = "berlin52.txt";
             int numberOfIterations = 1000;
-            int numberOfGeneratedCandidates = 20;
-            int tabuLifeTime = 5;
-            float tabuBreakRate = 0.8F;
-            float tabuBreakRateAdjustment = 0.8F;
+            int numberOfGeneratedCandidates = 100;
+            int tabuLifeTime = 70;
+            float tabuBreakRate = 0.02F;
+            float tabuBreakRateAdjustment = 0.3F;
 
             // czytanie parametrów podanych przy wywołaniu
             var argsCount = args.Count();
@@ -55,23 +56,22 @@ namespace AlgorytmTabuSearch
             }
             // wczytywanie mapy i kalkulacja odległości
 
-            var x = ReadCitiesCoordinates(mapPath);
-            var z = CalculateDistanceForCoordinates(x);
+            var cities = ReadCitiesCoordinates(mapPath);
+            var distanceMap = CalculateDistanceForCoordinates(cities);
 
             // zmienne tymczasowe
             var bestSolutions = new List<Route>();
             var bestSolutionsIteration = new List<int>();
-            x.Initialize();
             // wykonanie algorytmu dziesięciokrotnie
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 50; i++)
             {
                 
-                var algorithm = new TabuAlgorithm(z, numberOfIterations, numberOfGeneratedCandidates, tabuLifeTime, tabuBreakRate, tabuBreakRateAdjustment);
+                var algorithm = new TabuAlgorithm(distanceMap, numberOfIterations, numberOfGeneratedCandidates, tabuLifeTime, tabuBreakRate, tabuBreakRateAdjustment);
                 algorithm.Run();
                 // zapis najlepszych osobników
                 bestSolutions.Add(algorithm.BestSolution);
                 bestSolutionsIteration.Add(algorithm.BestSolutionIteration);
-
+                Console.WriteLine(i);
             }
             
             // zapis do pliku
@@ -80,7 +80,7 @@ namespace AlgorytmTabuSearch
             Console.SetOut(sw);
 
             Console.WriteLine("Iteracja najlepszego rozwiązania; Koszt najlepszego rozwiązania");
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 50; i++)
             {
 
                 Console.WriteLine("{0};{1}", bestSolutionsIteration[i], bestSolutions[i].Cost.ToString("0.000000000"));
@@ -98,12 +98,40 @@ namespace AlgorytmTabuSearch
 
         public static int[,] ReadCitiesCoordinates(string filePath)
         {
-            throw new NotImplementedException();
+            StreamReader sr = new StreamReader(filePath);
+            var line = sr.ReadLine();
+            var numberOfCities = Convert.ToInt32(line);
+            var citiesCoordinates = new int[numberOfCities, 2];
+            for (int i = 0; i < numberOfCities; i++)
+            {
+                line = sr.ReadLine();
+                if (line == null) throw new Exception();
+                var coordinates = line.Split(' ');
+                for (int j = 0; j < coordinates.Length; j++)
+                {
+                    citiesCoordinates[i, j] = Convert.ToInt32(coordinates[j]);
+                }
+            }
+
+            return citiesCoordinates;
         }
 
-        public static float[,] CalculateDistanceForCoordinates(int[,] coordinates)
+        public static double[,] CalculateDistanceForCoordinates(int[,] coordinates)
         {
-            throw new NotImplementedException();
+            var coordinatesLength = coordinates.GetLength(0);
+            var distanceMap = new double[coordinatesLength, coordinatesLength];
+            for (int i = 0; i < coordinatesLength; i++)
+            {
+                for (int j = i+1; j < coordinatesLength; j++)
+                {
+                    
+                    var distance = Math.Sqrt(Math.Pow(coordinates[j, 0] - coordinates[i, 0], 2) + Math.Pow(coordinates[j, 1] - coordinates[i,1], 2));
+                    distanceMap[i, j] = distance;
+                    distanceMap[j, i] = distance;
+                }
+                
+            }
+            return distanceMap;
         }
     }
 }

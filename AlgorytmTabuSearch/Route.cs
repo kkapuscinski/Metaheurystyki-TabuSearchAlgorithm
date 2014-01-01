@@ -7,14 +7,10 @@ namespace AlgorytmTabuSearch
 {
     public class Route
     {
-        public float Cost { get; private set;}
-        public int[] Points { get; private set; }
-
-        public Route(int[] points, float cost)
-        {
-            Cost = cost;
-            Points = points;
-        }
-
+        public double Cost { get; set;}
+        public double TabuAdjustedCost { get; set;}
+        public int[] Points { get; set; }
+        public int ChangedIndex1 { get; set; }
+        public int ChangedIndex2 { get; set; }
     }
 }
