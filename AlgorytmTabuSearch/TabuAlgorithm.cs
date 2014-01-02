@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,17 +10,14 @@ namespace AlgorytmTabuSearch
     public class TabuAlgorithm
     {
         public Random random;
-
         //Parametry algorytmu
         public int NumberOfIterations { get; private set; }
         public int NumberOfGeneratedCandidates { get; private set; }
         public int TabuLifetime { get; private set; }
-        public float TabuBreakRate { get; private set; }
-        public float TabuBreakRateAdjustment { get; private set; }
-        //public float TabuFrequencyAdjustment { get; private set; }
+        public float FrequencyAdjustment { get; private set; }
 
         //Struktury danych
-        public double[,] DistanceArray { get; private set; }
+        public int[,] DistanceArray { get; private set; }
         public int[,] TabuArray { get; private set; }
 
         //Wyniki algorytmu
@@ -29,7 +27,7 @@ namespace AlgorytmTabuSearch
         private Route ActualSolution { get; set; }
         private List<Route> SolutionCandidates { get; set; }
 
-        public TabuAlgorithm(double[,] distanceArray, int numberOfIterations, int numberOfGeneratedCandidates, int tabuLifeTime, float tabuBreakRate, float tabuBreakRateAdjustment)
+        public TabuAlgorithm(int[,] distanceArray, int numberOfIterations, int numberOfGeneratedCandidates, int tabuLifeTime, float frequencyAdjustment)
         {
             //TODO: wyjątki !
             if (distanceArray == null) throw new ArgumentNullException("distanceArray");
@@ -47,8 +45,7 @@ namespace AlgorytmTabuSearch
             NumberOfIterations = numberOfIterations;
             NumberOfGeneratedCandidates = numberOfGeneratedCandidates;
             TabuLifetime = tabuLifeTime;
-            TabuBreakRate = tabuBreakRate;
-            TabuBreakRateAdjustment = tabuBreakRateAdjustment;
+            FrequencyAdjustment = frequencyAdjustment;
 
 
 
@@ -61,7 +58,6 @@ namespace AlgorytmTabuSearch
             ActualSolution = GenerateRandomRoute();
             CalculateCost(ActualSolution);
             BestSolution = ActualSolution;
-
             for (int i = 0; i < NumberOfIterations; i++)
             {
                 SolutionCandidates = generateCandidates();
@@ -104,13 +100,12 @@ namespace AlgorytmTabuSearch
             {
                 for (int j = i+1; j < tabuArrayLength; j++)
                 {
-                    if (TabuArray[i, j] > 0)
+                    if (TabuArray[j, i] > 0)
                     {
-                        TabuArray[i, j]--;
-                        //TabuArray[j, i]--;
+                        TabuArray[j, i]--;
                     }
 
-                    TabuArray[j, i]++;
+                    TabuArray[i, j]++;
 
                 }
             }
@@ -133,19 +128,29 @@ namespace AlgorytmTabuSearch
                 
                 r1 = random.Next(0, actualRoutePoints.Length);
                 do{
-                    r2 = random.Next(0, actualRoutePoints.Length);    
+                    r2 = random.Next(0, actualRoutePoints.Length);
                 } while (r1 == r2);
                 
-                //TODO: zabezpieczenie przed wylosowaniem takich samych indeksów
-                SwapElements(tmpPointArray, r1, r2);
 
+                int temp = tmpPointArray[r1];
+                tmpPointArray[r1] = tmpPointArray[r2];
+                tmpPointArray[r2] = temp;
 
-                var x = new Route{ Points = tmpPointArray, ChangedIndex1 = r1, ChangedIndex2 = r2};
-                if (!tmpCandidates.Any(i => i.Points.SequenceEqual(x.Points)))
+                Route tmpRoute = null;
+                if (r1 > r2)
                 {
-                    CalculateCost(x);
-                    tmpCandidates.Add(x);
+                    tmpRoute = new Route { Points = tmpPointArray, ChangedIndex1 = r1, ChangedIndex2 = r2 };
                 }
+                else
+                {
+                    tmpRoute = new Route { Points = tmpPointArray, ChangedIndex1 = r2, ChangedIndex2 = r1 };
+                }
+
+                //if (!tmpCandidates.Any(i => i.ChangedIndex1 == tmpRoute.ChangedIndex1 && i.ChangedIndex2 == tmpRoute.ChangedIndex2))
+                //{
+                    CalculateCost(tmpRoute);
+                    tmpCandidates.Add(tmpRoute);
+                //}
                 
 	        }
             return tmpCandidates;
@@ -180,9 +185,10 @@ namespace AlgorytmTabuSearch
             }
             // powrót do punktu startowego
             route.Cost += DistanceArray[route.Points[route.Points.Length - 1], route.Points[0]];
+            
             //TODO: wyliczanie kosztu tabu
             route.TabuAdjustedCost = route.Cost;
-            route.TabuAdjustedCost = route.TabuAdjustedCost - (1 * route.Points.Length * TabuArray[route.ChangedIndex2, route.ChangedIndex1]);
+            route.TabuAdjustedCost = Convert.ToInt32(route.TabuAdjustedCost - (FrequencyAdjustment * TabuArray[route.ChangedIndex2, route.ChangedIndex1]));
         }
 
 

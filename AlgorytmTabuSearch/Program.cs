@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,12 +16,12 @@ namespace AlgorytmTabuSearch
 
             // domyślne parametry
             //optimal berlin52 7544.365901904087
-            string mapPath = "berlin52.txt";
+            //optimal kroA200 29368
+            string mapPath = "kroA200.txt";
             int numberOfIterations = 1000;
-            int numberOfGeneratedCandidates = 100;
-            int tabuLifeTime = 70;
-            float tabuBreakRate = 0.02F;
-            float tabuBreakRateAdjustment = 0.3F;
+            int numberOfGeneratedCandidates = 2000;
+            int tabuLifeTime = 50;
+            float frequencyAdjustment = 2F;
 
             // czytanie parametrów podanych przy wywołaniu
             var argsCount = args.Count();
@@ -48,8 +49,7 @@ namespace AlgorytmTabuSearch
                     numberOfIterations = Convert.ToInt32(args[1]);
                     numberOfGeneratedCandidates = Convert.ToInt32(args[2]);
                     tabuLifeTime = Convert.ToInt32(args[3]);
-                    tabuBreakRate = Convert.ToSingle(args[4]);
-                    tabuBreakRateAdjustment = Convert.ToSingle(args[5]);
+                    frequencyAdjustment = Convert.ToSingle(args[4]);
                 }
 
 
@@ -62,25 +62,29 @@ namespace AlgorytmTabuSearch
             // zmienne tymczasowe
             var bestSolutions = new List<Route>();
             var bestSolutionsIteration = new List<int>();
+            var x = new Stopwatch();
+
             // wykonanie algorytmu dziesięciokrotnie
-            for (int i = 0; i < 50; i++)
+            x.Start();
+            for (int i = 0; i < 10; i++)
             {
                 
-                var algorithm = new TabuAlgorithm(distanceMap, numberOfIterations, numberOfGeneratedCandidates, tabuLifeTime, tabuBreakRate, tabuBreakRateAdjustment);
+                var algorithm = new TabuAlgorithm(distanceMap, numberOfIterations, numberOfGeneratedCandidates, tabuLifeTime, frequencyAdjustment);
                 algorithm.Run();
                 // zapis najlepszych osobników
                 bestSolutions.Add(algorithm.BestSolution);
                 bestSolutionsIteration.Add(algorithm.BestSolutionIteration);
                 Console.WriteLine(i);
             }
+            x.Stop();
             
             // zapis do pliku
             FileStream fs = new FileStream(DateTime.Now.ToString("HH_mm_ss") + ".csv", FileMode.Create);
             StreamWriter sw = new StreamWriter(fs);
             Console.SetOut(sw);
-
+            Console.WriteLine(x.Elapsed);
             Console.WriteLine("Iteracja najlepszego rozwiązania; Koszt najlepszego rozwiązania");
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 10; i++)
             {
 
                 Console.WriteLine("{0};{1}", bestSolutionsIteration[i], bestSolutions[i].Cost.ToString("0.000000000"));
@@ -116,18 +120,18 @@ namespace AlgorytmTabuSearch
             return citiesCoordinates;
         }
 
-        public static double[,] CalculateDistanceForCoordinates(int[,] coordinates)
+        public static int[,] CalculateDistanceForCoordinates(int[,] coordinates)
         {
             var coordinatesLength = coordinates.GetLength(0);
-            var distanceMap = new double[coordinatesLength, coordinatesLength];
+            var distanceMap = new int[coordinatesLength, coordinatesLength];
             for (int i = 0; i < coordinatesLength; i++)
             {
                 for (int j = i+1; j < coordinatesLength; j++)
                 {
                     
                     var distance = Math.Sqrt(Math.Pow(coordinates[j, 0] - coordinates[i, 0], 2) + Math.Pow(coordinates[j, 1] - coordinates[i,1], 2));
-                    distanceMap[i, j] = distance;
-                    distanceMap[j, i] = distance;
+                    distanceMap[i, j] = Convert.ToInt32(distance);
+                    distanceMap[j, i] = Convert.ToInt32(distance);
                 }
                 
             }
