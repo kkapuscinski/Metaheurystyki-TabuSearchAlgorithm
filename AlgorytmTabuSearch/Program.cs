@@ -18,10 +18,10 @@ namespace AlgorytmTabuSearch
             //optimal berlin52 7544.365901904087
             //optimal kroA200 29368
             string mapPath = "kroA200.txt";
-            int numberOfIterations = 1000;
-            int numberOfGeneratedCandidates = 2000;
+            int numberOfIterations = 5000;
+            int numberOfGeneratedCandidates = 200;
             int tabuLifeTime = 50;
-            float frequencyAdjustment = 2F;
+            float frequencyAdjustment = 0.01F;
 
             // czytanie parametrów podanych przy wywołaniu
             var argsCount = args.Count();
@@ -30,15 +30,14 @@ namespace AlgorytmTabuSearch
                 if (args[0] == "-help")
                 {
                     Console.WriteLine("Parametry do podania nalezy podawać po kolei oddzielone spacjami");
-                    Console.WriteLine("1. ścieżka do pliku z współrzędnymi miast");
-                    Console.WriteLine("2. ilość iteracji integer");
-                    Console.WriteLine("3. ilość generowanych kandydatów zmiany integer");
-                    Console.WriteLine("4. czas trwania tabu integer");
-                    Console.WriteLine("5. waga dla łamania ograniczenia tabu float");
-                    Console.WriteLine("6. poziom zmniejszania wagi łamania ograniczenia tabu float");
+                    Console.WriteLine("1. Ścieżka do pliku z współrzędnymi ");
+                    Console.WriteLine("2. Ilość iteracji algorytmu  integer");
+                    Console.WriteLine("3. Ilość generowanych kandydatów(par miast do zamiany) integer");
+                    Console.WriteLine("4. Czas trwania karencji Tabu  integer");
+                    Console.WriteLine("5. Współczynnik dostosowania częstotliwości  float");
                     return;
                 }
-                else if (argsCount != 6)
+                else if (argsCount != 5)
                 {
                     Console.WriteLine("nie prawidłowa ilość parametrów. skorzystaj z opcji -help");
                     return;
@@ -62,10 +61,8 @@ namespace AlgorytmTabuSearch
             // zmienne tymczasowe
             var bestSolutions = new List<Route>();
             var bestSolutionsIteration = new List<int>();
-            var x = new Stopwatch();
 
             // wykonanie algorytmu dziesięciokrotnie
-            x.Start();
             for (int i = 0; i < 10; i++)
             {
                 
@@ -74,15 +71,12 @@ namespace AlgorytmTabuSearch
                 // zapis najlepszych osobników
                 bestSolutions.Add(algorithm.BestSolution);
                 bestSolutionsIteration.Add(algorithm.BestSolutionIteration);
-                Console.WriteLine(i);
             }
-            x.Stop();
             
             // zapis do pliku
             FileStream fs = new FileStream(DateTime.Now.ToString("HH_mm_ss") + ".csv", FileMode.Create);
             StreamWriter sw = new StreamWriter(fs);
             Console.SetOut(sw);
-            Console.WriteLine(x.Elapsed);
             Console.WriteLine("Iteracja najlepszego rozwiązania; Koszt najlepszego rozwiązania");
             for (int i = 0; i < 10; i++)
             {
@@ -94,12 +88,25 @@ namespace AlgorytmTabuSearch
             Console.WriteLine("{0};{1};{2}", bestSolutions.Average(g => g.Cost), bestSolutions.Min(g => g.Cost), bestSolutions.Max(g => g.Cost));
             Console.WriteLine("Średnia ilość iteracji;Nalepsza ilość iteracji;Najgorsza ilość iteracji");
             Console.WriteLine("{0};{1};{2}", bestSolutionsIteration.Average(), bestSolutionsIteration.Min(), bestSolutionsIteration.Max());
+
+            var z = bestSolutions.OrderBy(b => b.Cost).First();
+
+            foreach (var item in z.Points)
+            {
+                Console.WriteLine(item+1);
+            }
+
             sw.Flush();
             fs.Flush(true);
             fs.Close();
             
         }
 
+        /// <summary>
+        /// metoda wczytująca współrzędne miast z pliku do tablicy
+        /// </summary>
+        /// <param name="filePath">ścieżka do pliku (pierwsza linia ilość miast, pozostałe współrzędne oddzielone spacją)</param>
+        /// <returns>tablica int współrzędnych miast(n,2)</returns>
         public static int[,] ReadCitiesCoordinates(string filePath)
         {
             StreamReader sr = new StreamReader(filePath);
@@ -120,6 +127,11 @@ namespace AlgorytmTabuSearch
             return citiesCoordinates;
         }
 
+        /// <summary>
+        /// metoda obliczająca dystans (Euklidesowy) między miastami 
+        /// </summary>
+        /// <param name="coordinates">tablica współrzędnych</param>
+        /// <returns>tablica odległości miast (n,n)</returns>
         public static int[,] CalculateDistanceForCoordinates(int[,] coordinates)
         {
             var coordinatesLength = coordinates.GetLength(0);

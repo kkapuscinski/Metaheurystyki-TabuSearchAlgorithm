@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace AlgorytmTabuSearch
 {
+    /// <summary>
+    /// klasa opisująca algorytm Tabu Search
+    /// </summary>
     public class TabuAlgorithm
     {
         public Random random;
@@ -27,9 +30,17 @@ namespace AlgorytmTabuSearch
         private Route ActualSolution { get; set; }
         private List<Route> SolutionCandidates { get; set; }
 
+        /// <summary>
+        /// konstruktor obiektu algortymu Tabu Search
+        /// </summary>
+        /// <param name="distanceArray">Tablica odległości miast</param>
+        /// <param name="numberOfIterations">Ilość iteracji</param>
+        /// <param name="numberOfGeneratedCandidates"> Ilość generowanych kandydatów</param>
+        /// <param name="tabuLifeTime">Czas trwania Tabu</param>
+        /// <param name="frequencyAdjustment">Współczynnik częstotliwości</param>
         public TabuAlgorithm(int[,] distanceArray, int numberOfIterations, int numberOfGeneratedCandidates, int tabuLifeTime, float frequencyAdjustment)
         {
-            //TODO: wyjątki !
+
             if (distanceArray == null) throw new ArgumentNullException("distanceArray");
             if (numberOfIterations < 0) throw new ArgumentOutOfRangeException("numberOfIterations");
             if (numberOfGeneratedCandidates < 0) throw new ArgumentOutOfRangeException("numberOfGeneratedCandidates");
@@ -53,6 +64,9 @@ namespace AlgorytmTabuSearch
             random = new Random();
         }
 
+        /// <summary>
+        /// metoda wykonująca algorytm
+        /// </summary>
         public void Run()
         {
             ActualSolution = GenerateRandomRoute();
@@ -70,7 +84,11 @@ namespace AlgorytmTabuSearch
                 UpdateMemory();
             }
         }
-
+        
+        /// <summary>
+        /// Metoda do wyboru najlepszego kandydata
+        /// </summary>
+        /// <returns>Obiekt trasy</returns>
         private Route SelectBestCandidate()
         {
             Route tmpSolution = null;
@@ -83,16 +101,22 @@ namespace AlgorytmTabuSearch
 
 
             tmpSolution = SolutionCandidates.Where(s => TabuArray[s.ChangedIndex1, s.ChangedIndex2] == 0).OrderBy(s => s.TabuAdjustedCost).FirstOrDefault();
+            //Jeśli jest kandydat nie będący tabu aktywny. to wybierz kandydata o najlepszej wartości kosztu dostosowanego o częstoliwość
             if (tmpSolution != null)
             {
+                
                 return tmpSolution;
             }
             else
             {
+                //wpp. Kryterium aspiracji wybierz najlepszego zabronionego kandydata uwzględniając koszt dostosowanego o częstotliwość
                return SolutionCandidates.OrderBy(s => s.TabuAdjustedCost).First();
             }
         }
 
+        /// <summary>
+        /// Metoda aktualizująca pamięć algorytmu
+        /// </summary>
         private void UpdateMemory()
         {
             var tabuArrayLength = TabuArray.GetLength(0);
@@ -100,22 +124,28 @@ namespace AlgorytmTabuSearch
             {
                 for (int j = i+1; j < tabuArrayLength; j++)
                 {
+                    //Jeśli miasto jest Tabu aktywne, to zmniejsz jego wartość o 1
                     if (TabuArray[j, i] > 0)
                     {
                         TabuArray[j, i]--;
                     }
 
+                    // Zwiększ częstotliwość przebywania o 1
                     TabuArray[i, j]++;
 
                 }
             }
 
-
+            // dla aktualnej pary zamienionych miast ustaw Tabu aktywność i zresetuj licznik częstotliwości
             TabuArray[ActualSolution.ChangedIndex1, ActualSolution.ChangedIndex2] = TabuLifetime;
             TabuArray[ActualSolution.ChangedIndex2, ActualSolution.ChangedIndex1] = 0;
 
         }
 
+        /// <summary>
+        /// Metoda generująca kandydatów tras
+        /// </summary>
+        /// <returns></returns>
         private List<Route> generateCandidates()
         {
             var tmpCandidates = new List<Route>();
@@ -123,6 +153,7 @@ namespace AlgorytmTabuSearch
             int r1,r2;
             while (tmpCandidates.Count < NumberOfGeneratedCandidates)
 	        {
+                //Losowanie pary miast
 	            var tmpPointArray = new int[actualRoutePoints.Length];
                 actualRoutePoints.CopyTo(tmpPointArray, 0);
                 
@@ -131,7 +162,7 @@ namespace AlgorytmTabuSearch
                     r2 = random.Next(0, actualRoutePoints.Length);
                 } while (r1 == r2);
                 
-
+                //zamiana miast w tablicy trasy
                 int temp = tmpPointArray[r1];
                 tmpPointArray[r1] = tmpPointArray[r2];
                 tmpPointArray[r2] = temp;
@@ -146,16 +177,21 @@ namespace AlgorytmTabuSearch
                     tmpRoute = new Route { Points = tmpPointArray, ChangedIndex1 = r2, ChangedIndex2 = r1 };
                 }
 
-                //if (!tmpCandidates.Any(i => i.ChangedIndex1 == tmpRoute.ChangedIndex1 && i.ChangedIndex2 == tmpRoute.ChangedIndex2))
-                //{
+                // jeśli w liście kandydatów nie ma takiej pary zamienionych miast to dodaj ją do listy i oblicz jej koszt
+                if (!tmpCandidates.Any(i => i.ChangedIndex1 == tmpRoute.ChangedIndex1 && i.ChangedIndex2 == tmpRoute.ChangedIndex2))
+                {
                     CalculateCost(tmpRoute);
                     tmpCandidates.Add(tmpRoute);
-                //}
+                }
                 
 	        }
             return tmpCandidates;
         }
 
+        /// <summary>
+        /// metoda generuje losową trasę jako początek algorytmu
+        /// </summary>
+        /// <returns>obiekt trasy</returns>
         private Route GenerateRandomRoute()
         {
             var tmpRoute = new Route();
@@ -170,13 +206,19 @@ namespace AlgorytmTabuSearch
             for (int i = 0; i < tmpRoute.Points.Length; i++)
             {
                 int randomIndex = random.Next(0, k - 1);
-                SwapElements(tmpRoute.Points, randomIndex, k - 1);
+                int temp = tmpRoute.Points[randomIndex];
+                tmpRoute.Points[randomIndex] = tmpRoute.Points[k - 1];
+                tmpRoute.Points[k - 1] = temp;
                 k--;
             }
             return tmpRoute;
 
         }
 
+        /// <summary>
+        /// Metoda obliczająca koszt trasy
+        /// </summary>
+        /// <param name="route">obiekt trasy</param>
         private void CalculateCost(Route route)
         {
             for (int i = 0; i < route.Points.Length - 1; i++)
@@ -186,18 +228,11 @@ namespace AlgorytmTabuSearch
             // powrót do punktu startowego
             route.Cost += DistanceArray[route.Points[route.Points.Length - 1], route.Points[0]];
             
-            //TODO: wyliczanie kosztu tabu
+            // wyliczanie kosztu z uwzględnieniem częstotliwości
             route.TabuAdjustedCost = route.Cost;
             route.TabuAdjustedCost = Convert.ToInt32(route.TabuAdjustedCost - (FrequencyAdjustment * TabuArray[route.ChangedIndex2, route.ChangedIndex1]));
         }
 
-
-        private void SwapElements(int[] array, int index1, int index2)
-        {
-            int temp = array[index1];
-            array[index1] = array[index2];
-            array[index2] = temp;
-        }
 
     }
 
